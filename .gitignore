@@ -1,6 +1,32 @@
+# --- Secrets -----------------------------------------------------------
+# Never commit real keys. Ship .env.example instead.
 .env
+.env.*
+!.env.example
+
+# --- Python ------------------------------------------------------------
 .venv/
 __pycache__/
+*.py[cod]
+
+# --- Node --------------------------------------------------------------
 node_modules/
+
+# --- Archives ----------------------------------------------------------
 *.zip
+
+# --- Databases ---------------------------------------------------------
+# The course catalog DB is small (~500 KB) and is committed on purpose.
+# Transient SQLite sidecar files are not.
 *.db
+!data/yale_som.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# --- OS / editor -------------------------------------------------------
+.DS_Store
+.vscode/
+.idea/
