@@ -1,10 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchCourses } from './api'
-import type { Course } from './api'
+import { fetchCourses, logout, me } from './api'
+import type { Course, Session } from './api'
+import AuthGate from './components/AuthGate'
 import ChatPanel from './components/ChatPanel'
 import CourseCard from './components/CourseCard'
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  // Resolve any stored token once on load so a returning user skips the gate.
+  useEffect(() => {
+    let alive = true
+    me()
+      .then((s) => alive && setSession(s))
+      .finally(() => alive && setCheckingSession(false))
+    return () => {
+      alive = false
+    }
+  }, [])
+
   const [query, setQuery] = useState('')
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,8 +57,31 @@ export default function App() {
 
   const shown = category === 'All' ? courses : courses.filter((c) => c['Course Category'] === category)
 
+  if (checkingSession) {
+    return <div className="boot">Loading…</div>
+  }
+
+  if (!session) {
+    return <AuthGate onSignedIn={setSession} />
+  }
+
   return (
     <>
+      <div className="userbar">
+        <span className="userbar__who">
+          Signed in as <b>{session.username}</b>
+        </span>
+        <button
+          type="button"
+          className="userbar__out"
+          onClick={async () => {
+            await logout()
+            setSession(null)
+          }}
+        >
+          Sign out
+        </button>
+      </div>
       <header className="hero">
         <div className="hero__inner">
           <p className="hero__eyebrow">Yale School of Management</p>
@@ -98,7 +136,7 @@ export default function App() {
         ) : null}
       </main>
 
-      <ChatPanel />
+      <ChatPanel username={session.username} />
     </>
   )
 }

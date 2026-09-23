@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import Markdown from 'react-markdown'
-import { sendChat } from '../api'
+import { fetchHistory, sendChat } from '../api'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -21,12 +21,40 @@ const TOOL_LABELS: Record<string, string> = {
   web_search: 'Web search',
 }
 
-export default function ChatPanel() {
+interface ChatPanelProps {
+  /** Re-fetch history when the signed-in user changes. */
+  username?: string
+}
+
+export default function ChatPanel({ username }: ChatPanelProps) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+
+  // Restore this user's saved conversation. The server persists both sides of
+  // every exchange, so returning users see their prior chat.
+  useEffect(() => {
+    let alive = true
+    fetchHistory()
+      .then((rows) => {
+        if (!alive) return
+        setMessages(
+          rows.map((r) => ({
+            role: r.role,
+            text: r.content,
+            tools: r.tools_used,
+          })),
+        )
+      })
+      .catch(() => {
+        /* no history yet, or not signed in */
+      })
+    return () => {
+      alive = false
+    }
+  }, [username])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
